@@ -1,15 +1,35 @@
+type Variant = 'gradient' | 'outline' | 'default'
+
 type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
   loading?: boolean
+  variant?: Variant
 }
 
-export default function Button({ children, loading, disabled, className = '', ...props }: ButtonProps) {
+const variantClasses: Record<Variant, string> = {
+  gradient:
+    'bg-gradient-to-r from-fuchsia-500 to-pink-500 text-white hover:from-fuchsia-600 hover:to-pink-600 shadow-md shadow-pink-200',
+  outline:
+    'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 shadow-sm',
+  default:
+    'bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm',
+}
+
+export default function Button({
+  children,
+  loading,
+  disabled,
+  variant = 'default',
+  className = '',
+  ...props
+}: ButtonProps) {
   return (
     <button
       disabled={disabled || loading}
-      className={`w-full rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white
-        transition hover:bg-indigo-700 active:scale-[0.98]
+      className={`w-full rounded-xl px-4 py-2.5 text-sm font-semibold
+        transition active:scale-[0.98]
         disabled:cursor-not-allowed disabled:opacity-60
-        focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2
+        focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-fuchsia-400
+        ${variantClasses[variant]}
         ${className}`}
       {...props}
     >
@@ -19,7 +39,7 @@ export default function Button({ children, loading, disabled, className = '', ..
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
           </svg>
-          Loading…
+          Signing in…
         </span>
       ) : children}
     </button>

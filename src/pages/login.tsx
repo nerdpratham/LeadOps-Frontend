@@ -2,20 +2,64 @@ import { useState } from 'react'
 import Input from '../components/Input'
 import Button from '../components/Button'
 
-type Errors = { email?: string; password?: string }
+// ─── icons ────────────────────────────────────────────────────────────────────
+
+function MailIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+    </svg>
+  )
+}
+
+function LockIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+    </svg>
+  )
+}
+
+function EyeIcon({ open }: { open: boolean }) {
+  return open ? (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+    </svg>
+  ) : (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+    </svg>
+  )
+}
+
+// ─── types ────────────────────────────────────────────────────────────────────
+
+type Credentials = { email: string; password: string }
+type FieldErrors = Partial<Record<keyof Credentials, string>>
+
+// ─── component ────────────────────────────────────────────────────────────────
 
 export default function Login() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [errors, setErrors] = useState<Errors>({})
+  const [credentials, setCredentials] = useState<Credentials>({ email: '', password: '' })
+  const [rememberMe, setRememberMe] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [errors, setErrors] = useState<FieldErrors>({})
   const [loading, setLoading] = useState(false)
 
+  function updateField(field: keyof Credentials) {
+    return (e: React.ChangeEvent<HTMLInputElement>) => {
+      setCredentials(prev => ({ ...prev, [field]: e.target.value }))
+      if (errors[field]) setErrors(prev => ({ ...prev, [field]: undefined }))
+    }
+  }
+
   function validate(): boolean {
-    const next: Errors = {}
-    if (!email) next.email = 'Email is required.'
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) next.email = 'Enter a valid email.'
-    if (!password) next.password = 'Password is required.'
-    else if (password.length < 6) next.password = 'Password must be at least 6 characters.'
+    const next: FieldErrors = {}
+    if (!credentials.email) next.email = 'Email is required.'
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(credentials.email)) next.email = 'Enter a valid email.'
+    if (!credentials.password) next.password = 'Password is required.'
+    else if (credentials.password.length < 6) next.password = 'Must be at least 6 characters.'
     setErrors(next)
     return Object.keys(next).length === 0
   }
@@ -24,72 +68,183 @@ export default function Login() {
     e.preventDefault()
     if (!validate()) return
     setLoading(true)
-    // TODO: replace with real auth call
-    await new Promise((r) => setTimeout(r, 1200))
-    setLoading(false)
+    try {
+      // TODO: replace with API call
+      // const response = await api.post('/auth/login', { ...credentials, rememberMe })
+      // navigate('/dashboard')
+      await new Promise(r => setTimeout(r, 1200))
+    } catch {
+      // TODO: map API error to field errors
+      // setErrors({ email: 'Invalid email or password.' })
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-      <div className="w-full max-w-md">
-        {/* Logo / brand */}
-        <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-600">
-            <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
+    <div
+      className="h-screen flex items-center justify-center px-4 py-4 bg-cover bg-center bg-no-repeat overflow-hidden"
+      style={{ backgroundImage: "url('/login_cover2.png')" }}
+    >
+      {/* Outer frame — white border with padding creating the separation effect */}
+      <div className="w-full max-w-5xl bg-white/60 backdrop-blur-2xl rounded-4xl p-3 max-h-[calc(100vh-2rem)] flex flex-col gap-3
+        border border-white/60
+        shadow-[0_32px_80px_rgba(0,0,0,0.35),0_8px_24px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.8),inset_0_-1px_0_rgba(0,0,0,0.05)]">
+        <div className="flex gap-3 flex-1 min-h-0">
+
+        {/* ── Left panel ─────────────────────────────────────────────────── */}
+        <div className="hidden md:flex relative w-[45%] flex-col bg-gradient-to-br from-violet-500 via-fuchsia-400 to-purple-700 p-10 overflow-hidden rounded-[1.4rem]">
+          {/* subtle radial glow over the image */}
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_60%_40%,rgba(255,255,255,0.15),transparent_70%)] z-10 pointer-events-none" />
+
+          {/* brand text */}
+          <div className="relative z-10">
+            <p className="text-white/50 text-xs font-semibold tracking-[0.25em] uppercase">LeadOps</p>
+            <h2 className="mt-2 text-4xl font-black text-white leading-tight tracking-tight">
+              SMART<br />AI
+            </h2>
+            <p className="text-white/60 text-xs tracking-[0.2em] uppercase mt-0.5">Assistance</p>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Welcome back</h1>
-          <p className="mt-1 text-sm text-gray-500">Sign in to your LeadOps account</p>
+
+          {/* side image — covers the full panel */}
+          <img
+            src="/login_side.png"
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover z-0"
+          />
+
+          {/* bottom tagline */}
+          <div className="relative z-10">
+            <h3 className="text-white text-xl font-bold leading-snug">Intelligent AI Assistance</h3>
+            <p className="mt-2 text-white/65 text-sm leading-relaxed">
+              Manage your leads smarter with AI-powered automation, real-time insights, and seamless workflows.
+            </p>
+          </div>
         </div>
 
-        {/* Card */}
-        <div className="rounded-2xl bg-white px-8 py-8 shadow-sm ring-1 ring-gray-200">
-          <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
-            <Input
-              id="email"
-              label="Email"
-              type="email"
-              placeholder="you@example.com"
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              error={errors.email}
-            />
-            <Input
-              id="password"
-              label="Password"
-              type="password"
-              placeholder="••••••••"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              error={errors.password}
-            />
-
-            <div className="flex items-center justify-between text-sm">
-              <label className="flex cursor-pointer items-center gap-2 text-gray-600">
-                <input type="checkbox" className="h-4 w-4 rounded border-gray-300 accent-indigo-600" />
-                Remember me
-              </label>
-              <a href="#" className="font-medium text-indigo-600 hover:text-indigo-700">
-                Forgot password?
-              </a>
+        {/* ── Right panel ────────────────────────────────────────────────── */}
+        <div className="flex-1 bg-white px-8 sm:px-10 py-6 flex flex-col justify-between overflow-y-auto rounded-[1.4rem]">
+          <div>
+            {/* logo */}
+            <div className="mb-4 flex items-center gap-2.5">
+              <div className="h-10 w-10 rounded-xl bg-gray-100 flex items-center justify-center shadow-sm">
+                <span className="text-sm font-black text-gray-700">LO</span>
+              </div>
             </div>
 
-            <Button type="submit" loading={loading}>
-              Sign in
+            {/* heading */}
+            <div className="mb-5">
+              <h1 className="text-2xl font-bold text-gray-900">Welcome Back</h1>
+              <p className="mt-1 text-sm text-gray-500">Sign in to access your LeadOps dashboard</p>
+            </div>
+
+            {/* form */}
+            <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-3">
+              <Input
+                id="email"
+                label="Email"
+                type="email"
+                placeholder="you@example.com"
+                autoComplete="email"
+                value={credentials.email}
+                onChange={updateField('email')}
+                error={errors.email}
+                leftIcon={<MailIcon />}
+              />
+
+              <Input
+                id="password"
+                label="Password"
+                type={showPassword ? 'text' : 'password'}
+                placeholder="••••••••"
+                autoComplete="current-password"
+                value={credentials.password}
+                onChange={updateField('password')}
+                error={errors.password}
+                leftIcon={<LockIcon />}
+                rightIcon={
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(v => !v)}
+                    className="cursor-pointer text-gray-400 hover:text-gray-600 transition"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    <EyeIcon open={showPassword} />
+                  </button>
+                }
+              />
+
+              <div className="flex items-center justify-between text-sm">
+                <label className="flex cursor-pointer items-center gap-2 text-gray-600 select-none">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={e => setRememberMe(e.target.checked)}
+                    className="h-4 w-4 rounded border-gray-300 accent-fuchsia-500"
+                  />
+                  Remember me
+                </label>
+                <a href="#" className="font-medium text-fuchsia-600 hover:text-fuchsia-700 transition">
+                  Forgot Password?
+                </a>
+              </div>
+
+              <Button type="submit" variant="gradient" loading={loading} className="mt-0.5 py-2.5">
+                Sign In
+              </Button>
+            </form>
+
+            {/* divider */}
+            <div className="my-3 flex items-center gap-3">
+              <div className="flex-1 h-px bg-gray-200" />
+              <span className="text-xs text-gray-400 font-medium">Or Continue With</span>
+              <div className="flex-1 h-px bg-gray-200" />
+            </div>
+
+            {/* Google */}
+            <Button variant="outline" type="button">
+              <span className="flex items-center justify-center gap-2">
+                <svg className="h-4 w-4" viewBox="0 0 24 24">
+                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" />
+                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                </svg>
+                Google
+              </span>
             </Button>
-          </form>
+          </div>
+
+          {/* footer */}
+          <div className="mt-4 space-y-3">
+            <p className="text-center text-sm text-gray-500">
+              Don't have an account?{' '}
+              <a href="#" className="font-semibold text-fuchsia-600 hover:text-fuchsia-700 transition">
+                Sign up
+              </a>
+            </p>
+
+            {/* social proof */}
+            <div className="flex items-center gap-3 rounded-2xl bg-gray-50 px-4 py-3">
+              <div className="flex -space-x-2">
+                {['#f472b6', '#a78bfa', '#60a5fa'].map((color, i) => (
+                  <div
+                    key={i}
+                    className="h-7 w-7 rounded-full ring-2 ring-white"
+                    style={{ backgroundColor: color }}
+                  />
+                ))}
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-gray-800">10 Million+ Users</p>
+                <p className="text-xs text-gray-400">worldwide</p>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <p className="mt-6 text-center text-sm text-gray-500">
-          Don't have an account?{' '}
-          <a href="#" className="font-medium text-indigo-600 hover:text-indigo-700">
-            Sign up
-          </a>
-        </p>
-      </div>
+        </div>{/* end flex gap-3 row */}
+      </div>{/* end outer frame */}
     </div>
   )
 }
