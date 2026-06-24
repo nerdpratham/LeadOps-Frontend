@@ -101,26 +101,14 @@ export default function Login() {
             className="absolute inset-0 w-full h-full object-cover z-0"
           />
 
-          {/* top gradient — darkens behind brand text */}
-          <div className="absolute top-0 left-0 right-0 h-52 bg-gradient-to-b from-black/60 via-black/30 to-transparent z-10 pointer-events-none rounded-t-[1.4rem]" />
-
-          {/* bottom gradient — darkens behind tagline */}
-          <div className="absolute bottom-0 left-0 right-0 h-52 bg-gradient-to-t from-black/70 via-black/35 to-transparent z-10 pointer-events-none rounded-b-[1.4rem]" />
-
-          {/* brand text */}
-          <div className="relative z-20">
-            <p className="text-white/70 text-xs font-semibold tracking-[0.25em] uppercase drop-shadow-sm">LeadOps</p>
-            <h2 className="mt-2 text-4xl font-black text-white leading-tight tracking-tight drop-shadow-md">
-              SMART<br />AI
-            </h2>
-            <p className="text-white/60 text-xs tracking-[0.2em] uppercase mt-0.5">Assistance</p>
-          </div>
+          {/* bottom gradient — just enough to make text readable */}
+          <div className="absolute bottom-0 left-0 right-0 h-28 bg-gradient-to-t from-black/55 to-transparent z-10 pointer-events-none rounded-b-[1.4rem]" />
 
           {/* bottom tagline */}
           <div className="relative z-20 mt-auto">
-            <h3 className="text-white text-xl font-bold leading-snug drop-shadow-md">Intelligent AI Assistance</h3>
+            <h3 className="text-white text-xl font-bold leading-snug drop-shadow-md">LeadOps Control Center</h3>
             <p className="mt-2 text-white/80 text-sm leading-relaxed drop-shadow-sm">
-              Manage your leads smarter with AI-powered automation, real-time insights, and seamless workflows.
+              Turn incoming opportunities into visible execution.
             </p>
           </div>
         </div>
@@ -128,15 +116,8 @@ export default function Login() {
         {/* ── Right panel ────────────────────────────────────────────────── */}
         <div className="flex-1 bg-white px-8 sm:px-10 py-6 flex flex-col justify-between overflow-y-auto rounded-[1.4rem]">
           <div>
-            {/* logo */}
-            <div className="mb-4 flex items-center gap-2.5">
-              <div className="h-10 w-10 rounded-xl bg-gray-100 flex items-center justify-center shadow-sm">
-                <span className="text-sm font-black text-gray-700">LO</span>
-              </div>
-            </div>
-
             {/* heading */}
-            <div className="mb-5">
+            <div className="mb-5 text-center">
               <h1 className="text-2xl font-bold text-gray-900">Welcome Back</h1>
               <p className="mt-1 text-sm text-gray-500">Sign in to access your LeadOps dashboard</p>
             </div>
@@ -183,11 +164,11 @@ export default function Login() {
                     type="checkbox"
                     checked={rememberMe}
                     onChange={e => setRememberMe(e.target.checked)}
-                    className="h-4 w-4 rounded border-gray-300 accent-fuchsia-500"
+                    className="h-4 w-4 rounded border-gray-300 accent-rose-400"
                   />
                   Remember me
                 </label>
-                <a href="#" className="font-medium text-fuchsia-600 hover:text-fuchsia-700 transition">
+                <a href="#" className="font-medium text-rose-500 hover:text-rose-600 transition">
                   Forgot Password?
                 </a>
               </div>
@@ -219,31 +200,12 @@ export default function Login() {
           </div>
 
           {/* footer */}
-          <div className="mt-4 space-y-3">
-            <p className="text-center text-sm text-gray-500">
-              Don't have an account?{' '}
-              <a href="#" className="font-semibold text-fuchsia-600 hover:text-fuchsia-700 transition">
-                Sign up
-              </a>
-            </p>
-
-            {/* social proof */}
-            <div className="flex items-center gap-3 rounded-2xl bg-gray-50 px-4 py-3">
-              <div className="flex -space-x-2">
-                {['#f472b6', '#a78bfa', '#60a5fa'].map((color, i) => (
-                  <div
-                    key={i}
-                    className="h-7 w-7 rounded-full ring-2 ring-white"
-                    style={{ backgroundColor: color }}
-                  />
-                ))}
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-gray-800">10 Million+ Users</p>
-                <p className="text-xs text-gray-400">worldwide</p>
-              </div>
-            </div>
-          </div>
+          <p className="mt-4 text-center text-sm text-gray-500">
+            Don't have an account?{' '}
+            <a href="#" className="font-semibold text-rose-500 hover:text-rose-600 transition">
+              Sign up
+            </a>
+          </p>
         </div>
 
         </div>{/* end flex gap-3 row */}

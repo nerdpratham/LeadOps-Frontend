@@ -7,7 +7,7 @@ type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
 
 const variantClasses: Record<Variant, string> = {
   gradient:
-    'bg-gradient-to-r from-fuchsia-500 to-pink-500 text-white hover:from-fuchsia-600 hover:to-pink-600 shadow-md shadow-pink-200',
+    'bg-gradient-to-r from-rose-400 to-orange-400 text-white hover:from-rose-500 hover:to-orange-500 shadow-md shadow-orange-200',
   outline:
     'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 shadow-sm',
   default:
@@ -28,7 +28,7 @@ export default function Button({
       className={`w-full rounded-xl px-4 py-2.5 text-sm font-semibold
         transition active:scale-[0.98]
         disabled:cursor-not-allowed disabled:opacity-60
-        focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-fuchsia-400
+        focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-300
         ${variantClasses[variant]}
         ${className}`}
       {...props}

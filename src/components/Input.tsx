@@ -21,7 +21,7 @@ export default function Input({ label, error, id, leftIcon, rightIcon, ...props 
           id={id}
           className={`w-full rounded-xl border py-2.5 text-sm text-gray-900 outline-none transition
             placeholder:text-gray-400
-            focus:ring-2 focus:ring-fuchsia-400 focus:border-transparent
+            focus:ring-2 focus:ring-orange-300 focus:border-transparent
             ${leftIcon ? 'pl-10' : 'pl-3.5'}
             ${rightIcon ? 'pr-10' : 'pr-3.5'}
             ${error ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-gray-50 hover:border-gray-300 focus:bg-white'}`}
