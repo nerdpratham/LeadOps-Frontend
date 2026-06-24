@@ -84,7 +84,7 @@ export default function Login() {
   return (
     <div
       className="h-screen flex items-center justify-center px-4 py-4 bg-cover bg-center bg-no-repeat overflow-hidden"
-      style={{ backgroundImage: "url('/login_cover2.png')" }}
+      style={{ backgroundImage: "url('/login_cover3.png')" }}
     >
       {/* Outer frame — white border with padding creating the separation effect */}
       <div className="w-full max-w-5xl bg-white/60 backdrop-blur-2xl rounded-4xl p-3 max-h-[calc(100vh-2rem)] flex flex-col gap-3
