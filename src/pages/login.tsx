@@ -94,18 +94,6 @@ export default function Login() {
 
         {/* ── Left panel ─────────────────────────────────────────────────── */}
         <div className="hidden md:flex relative w-[45%] flex-col bg-gradient-to-br from-violet-500 via-fuchsia-400 to-purple-700 p-10 overflow-hidden rounded-[1.4rem]">
-          {/* subtle radial glow over the image */}
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_60%_40%,rgba(255,255,255,0.15),transparent_70%)] z-10 pointer-events-none" />
-
-          {/* brand text */}
-          <div className="relative z-10">
-            <p className="text-white/50 text-xs font-semibold tracking-[0.25em] uppercase">LeadOps</p>
-            <h2 className="mt-2 text-4xl font-black text-white leading-tight tracking-tight">
-              SMART<br />AI
-            </h2>
-            <p className="text-white/60 text-xs tracking-[0.2em] uppercase mt-0.5">Assistance</p>
-          </div>
-
           {/* side image — covers the full panel */}
           <img
             src="/login_side.png"
@@ -113,10 +101,25 @@ export default function Login() {
             className="absolute inset-0 w-full h-full object-cover z-0"
           />
 
+          {/* top gradient — darkens behind brand text */}
+          <div className="absolute top-0 left-0 right-0 h-52 bg-gradient-to-b from-black/60 via-black/30 to-transparent z-10 pointer-events-none rounded-t-[1.4rem]" />
+
+          {/* bottom gradient — darkens behind tagline */}
+          <div className="absolute bottom-0 left-0 right-0 h-52 bg-gradient-to-t from-black/70 via-black/35 to-transparent z-10 pointer-events-none rounded-b-[1.4rem]" />
+
+          {/* brand text */}
+          <div className="relative z-20">
+            <p className="text-white/70 text-xs font-semibold tracking-[0.25em] uppercase drop-shadow-sm">LeadOps</p>
+            <h2 className="mt-2 text-4xl font-black text-white leading-tight tracking-tight drop-shadow-md">
+              SMART<br />AI
+            </h2>
+            <p className="text-white/60 text-xs tracking-[0.2em] uppercase mt-0.5">Assistance</p>
+          </div>
+
           {/* bottom tagline */}
-          <div className="relative z-10">
-            <h3 className="text-white text-xl font-bold leading-snug">Intelligent AI Assistance</h3>
-            <p className="mt-2 text-white/65 text-sm leading-relaxed">
+          <div className="relative z-20 mt-auto">
+            <h3 className="text-white text-xl font-bold leading-snug drop-shadow-md">Intelligent AI Assistance</h3>
+            <p className="mt-2 text-white/80 text-sm leading-relaxed drop-shadow-sm">
               Manage your leads smarter with AI-powered automation, real-time insights, and seamless workflows.
             </p>
           </div>
