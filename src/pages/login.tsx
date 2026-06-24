@@ -20,13 +20,6 @@ function LockIcon() {
   )
 }
 
-function OtpIcon() {
-  return (
-    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-    </svg>
-  )
-}
 
 function EyeIcon({ open }: { open: boolean }) {
   return open ? (
@@ -124,7 +117,8 @@ export default function Login() {
 
   // ── signup state ──
   const [signupForm, setSignupForm] = useState<SignupForm>({ email: '', otp: '', password: '', confirmPassword: '' })
-  const [otpSent, setOtpSent] = useState(false)
+  const [otpVerified, setOtpVerified] = useState(false)
+  const [showOtpPopover, setShowOtpPopover] = useState(false)
   const [otpLoading, setOtpLoading] = useState(false)
   const [showSignupPw, setShowSignupPw] = useState(false)
   const [showConfirmPw, setShowConfirmPw] = useState(false)
@@ -147,8 +141,27 @@ export default function Login() {
     try {
       // TODO: await api.post('/auth/send-otp', { email: signupForm.email })
       await new Promise(r => setTimeout(r, 800))
-      setOtpSent(true)
       setSignupErrors(prev => ({ ...prev, email: undefined }))
+      setShowOtpPopover(true)
+    } finally {
+      setOtpLoading(false)
+    }
+  }
+
+  async function handleVerifyOtp() {
+    if (signupForm.otp.length < 6) {
+      setSignupErrors(prev => ({ ...prev, otp: 'Enter the 6-digit OTP.' }))
+      return
+    }
+    setOtpLoading(true)
+    try {
+      // TODO: await api.post('/auth/verify-otp', { email: signupForm.email, otp: signupForm.otp })
+      await new Promise(r => setTimeout(r, 800))
+      setOtpVerified(true)
+      setShowOtpPopover(false)
+      setSignupErrors(prev => ({ ...prev, otp: undefined }))
+    } catch {
+      setSignupErrors(prev => ({ ...prev, otp: 'Invalid OTP. Please try again.' }))
     } finally {
       setOtpLoading(false)
     }
@@ -158,8 +171,7 @@ export default function Login() {
     const next: SignupErrors = {}
     if (!signupForm.email) next.email = 'Email is required.'
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(signupForm.email)) next.email = 'Enter a valid email.'
-    if (!otpSent) next.otp = 'Please send and verify OTP first.'
-    else if (!signupForm.otp) next.otp = 'Enter the OTP sent to your email.'
+    if (!otpVerified) next.email = next.email ?? 'Please verify your email with OTP first.'
     if (!signupForm.password) next.password = 'Password is required.'
     else if (signupForm.password.length < 6) next.password = 'Must be at least 6 characters.'
     if (!signupForm.confirmPassword) next.confirmPassword = 'Please confirm your password.'
@@ -297,7 +309,7 @@ export default function Login() {
                   {/* Email + Send OTP */}
                   <div className="flex flex-col gap-1.5">
                     <label className="text-sm font-medium text-gray-600">Email</label>
-                    <div className="flex gap-2 items-start">
+                    <div className="relative flex gap-2 items-start">
                       <div className="flex-1">
                         <Input
                           id="signup-email"
@@ -313,32 +325,62 @@ export default function Login() {
                       </div>
                       <button
                         type="button"
-                        onClick={handleSendOtp}
-                        disabled={otpLoading || otpSent}
+                        onClick={otpVerified ? undefined : handleSendOtp}
+                        disabled={otpLoading || otpVerified}
                         className={`mt-0 h-[42px] px-3.5 rounded-xl text-xs font-semibold border transition whitespace-nowrap
-                          ${otpSent
+                          ${otpVerified
                             ? 'bg-green-50 text-green-600 border-green-200 cursor-default'
                             : 'bg-orange-50 text-orange-500 border-orange-200 hover:bg-orange-100 disabled:opacity-50'}`}
                       >
-                        {otpLoading ? '…' : otpSent ? '✓ Sent' : 'Send OTP'}
+                        {otpLoading ? '…' : otpVerified ? '✓ Verified' : 'Send OTP'}
                       </button>
+
+                      {/* OTP Popover */}
+                      {showOtpPopover && (
+                        <div className="absolute right-0 top-full mt-2 z-50 w-64 rounded-2xl border border-gray-100 bg-white p-4 shadow-2xl">
+                          {/* caret */}
+                          <div className="absolute -top-1.75 right-10 h-3.5 w-3.5 rotate-45 border-l border-t border-gray-100 bg-white" />
+
+                          <div className="mb-1 flex items-center justify-between">
+                            <p className="text-sm font-semibold text-gray-800">Enter OTP</p>
+                            <button
+                              type="button"
+                              onClick={() => setShowOtpPopover(false)}
+                              className="text-gray-400 hover:text-gray-600 transition text-base leading-none"
+                              aria-label="Close"
+                            >✕</button>
+                          </div>
+                          <p className="mb-3 text-xs text-gray-400 truncate">Code sent to {signupForm.email}</p>
+
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            maxLength={6}
+                            placeholder="000000"
+                            value={signupForm.otp}
+                            onChange={e => {
+                              const v = e.target.value.replace(/\D/g, '')
+                              setSignupForm(prev => ({ ...prev, otp: v }))
+                              if (signupErrors.otp) setSignupErrors(prev => ({ ...prev, otp: undefined }))
+                            }}
+                            className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2.5 text-center text-xl tracking-[0.4em] text-gray-900 outline-none transition focus:border-transparent focus:ring-2 focus:ring-orange-300"
+                            autoFocus
+                          />
+                          {signupErrors.otp && (
+                            <p className="mt-1 text-xs text-red-500">{signupErrors.otp}</p>
+                          )}
+                          <button
+                            type="button"
+                            onClick={handleVerifyOtp}
+                            disabled={otpLoading || signupForm.otp.length < 6}
+                            className="mt-3 w-full rounded-xl bg-linear-to-r from-rose-400 to-orange-400 py-2 text-sm font-semibold text-white transition hover:from-rose-500 hover:to-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {otpLoading ? 'Verifying…' : 'Verify OTP'}
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
-
-                  {/* OTP */}
-                  <Input
-                    id="otp"
-                    label="OTP"
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={6}
-                    placeholder="Enter 6-digit OTP"
-                    value={signupForm.otp}
-                    onChange={updateSignup('otp')}
-                    error={signupErrors.otp}
-                    leftIcon={<OtpIcon />}
-                    disabled={!otpSent}
-                  />
 
                   {/* Password */}
                   <Input
