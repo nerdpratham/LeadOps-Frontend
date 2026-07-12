@@ -1,6 +1,10 @@
 import { useState } from 'react'
 import Input from '../components/Input'
 import Button from '../components/Button'
+import { api, setToken } from '../lib/api'
+
+type AuthUser = { id: string; email: string }
+type AuthResponse = { accessToken: string; user: AuthUser }
 
 // ─── icons ────────────────────────────────────────────────────────────────────
 
@@ -71,7 +75,7 @@ type SignupErrors = Partial<Record<keyof SignupForm, string>>
 
 // ─── component ────────────────────────────────────────────────────────────────
 
-export default function Login() {
+export default function Login({ onAuthed }: { onAuthed: (user: AuthUser) => void }) {
 
   // ── flip ──
   const [isFlipped, setIsFlipped] = useState(false)
@@ -81,6 +85,7 @@ export default function Login() {
   const [rememberMe, setRememberMe] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [loginErrors, setLoginErrors] = useState<LoginErrors>({})
+  const [loginError, setLoginError] = useState<string | null>(null)
   const [loginLoading, setLoginLoading] = useState(false)
 
   function updateLogin(field: keyof Credentials) {
@@ -102,14 +107,18 @@ export default function Login() {
 
   async function handleLogin(e: { preventDefault(): void }) {
     e.preventDefault()
+    setLoginError(null)
     if (!validateLogin()) return
     setLoginLoading(true)
     try {
-      // TODO: await api.post('/auth/login', { ...credentials, rememberMe })
-      // navigate('/dashboard')
-      await new Promise(r => setTimeout(r, 1200))
-    } catch {
-      // TODO: setLoginErrors({ email: 'Invalid email or password.' })
+      const res = await api<AuthResponse>('/auth/login', {
+        method: 'POST',
+        body: { email: credentials.email, password: credentials.password },
+      })
+      setToken(res.accessToken)
+      onAuthed(res.user)
+    } catch (err) {
+      setLoginError(err instanceof Error ? err.message : 'Sign in failed.')
     } finally {
       setLoginLoading(false)
     }
@@ -118,11 +127,13 @@ export default function Login() {
   // ── signup state ──
   const [signupForm, setSignupForm] = useState<SignupForm>({ email: '', otp: '', password: '', confirmPassword: '' })
   const [otpVerified, setOtpVerified] = useState(false)
+  const [emailVerifiedToken, setEmailVerifiedToken] = useState<string | null>(null)
   const [showOtpPopover, setShowOtpPopover] = useState(false)
   const [otpLoading, setOtpLoading] = useState(false)
   const [showSignupPw, setShowSignupPw] = useState(false)
   const [showConfirmPw, setShowConfirmPw] = useState(false)
   const [signupErrors, setSignupErrors] = useState<SignupErrors>({})
+  const [signupError, setSignupError] = useState<string | null>(null)
   const [signupLoading, setSignupLoading] = useState(false)
 
   function updateSignup(field: keyof SignupForm) {
@@ -139,10 +150,11 @@ export default function Login() {
     }
     setOtpLoading(true)
     try {
-      // TODO: await api.post('/auth/send-otp', { email: signupForm.email })
-      await new Promise(r => setTimeout(r, 800))
+      await api('/auth/send-otp', { method: 'POST', body: { email: signupForm.email } })
       setSignupErrors(prev => ({ ...prev, email: undefined }))
       setShowOtpPopover(true)
+    } catch (err) {
+      setSignupErrors(prev => ({ ...prev, email: err instanceof Error ? err.message : 'Could not send OTP.' }))
     } finally {
       setOtpLoading(false)
     }
@@ -155,13 +167,16 @@ export default function Login() {
     }
     setOtpLoading(true)
     try {
-      // TODO: await api.post('/auth/verify-otp', { email: signupForm.email, otp: signupForm.otp })
-      await new Promise(r => setTimeout(r, 800))
+      const res = await api<{ emailVerifiedToken: string }>('/auth/verify-otp', {
+        method: 'POST',
+        body: { email: signupForm.email, otp: signupForm.otp },
+      })
+      setEmailVerifiedToken(res.emailVerifiedToken)
       setOtpVerified(true)
       setShowOtpPopover(false)
       setSignupErrors(prev => ({ ...prev, otp: undefined }))
-    } catch {
-      setSignupErrors(prev => ({ ...prev, otp: 'Invalid OTP. Please try again.' }))
+    } catch (err) {
+      setSignupErrors(prev => ({ ...prev, otp: err instanceof Error ? err.message : 'Invalid OTP. Please try again.' }))
     } finally {
       setOtpLoading(false)
     }
@@ -182,14 +197,22 @@ export default function Login() {
 
   async function handleSignup(e: { preventDefault(): void }) {
     e.preventDefault()
+    setSignupError(null)
     if (!validateSignup()) return
+    if (!emailVerifiedToken) {
+      setSignupError('Your email verification expired. Please verify your email again.')
+      return
+    }
     setSignupLoading(true)
     try {
-      // TODO: await api.post('/auth/signup', { email: signupForm.email, otp: signupForm.otp, password: signupForm.password })
-      // navigate('/dashboard')
-      await new Promise(r => setTimeout(r, 1200))
-    } catch {
-      // TODO: map API errors
+      const res = await api<AuthResponse>('/auth/signup', {
+        method: 'POST',
+        body: { emailVerifiedToken, password: signupForm.password },
+      })
+      setToken(res.accessToken)
+      onAuthed(res.user)
+    } catch (err) {
+      setSignupError(err instanceof Error ? err.message : 'Account creation failed.')
     } finally {
       setSignupLoading(false)
     }
@@ -259,6 +282,10 @@ export default function Login() {
                     </label>
                     <a href="#" className="font-medium text-rose-500 hover:text-rose-600 transition">Forgot Password?</a>
                   </div>
+
+                  {loginError && (
+                    <p className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-600">{loginError}</p>
+                  )}
 
                   <Button type="submit" variant="gradient" loading={loginLoading} className="mt-0.5 py-2.5">
                     Sign In
@@ -419,6 +446,10 @@ export default function Login() {
                       </button>
                     }
                   />
+
+                  {signupError && (
+                    <p className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-600">{signupError}</p>
+                  )}
 
                   <Button type="submit" variant="gradient" loading={signupLoading} className="mt-0.5 py-2.5">
                     Create Account
