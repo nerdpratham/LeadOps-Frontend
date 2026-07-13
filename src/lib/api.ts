@@ -1,3 +1,7 @@
+export type Role = 'admin' | 'employee'
+export type AuthUser = { id: string; email: string; role?: Role }
+export type AuthResponse = { accessToken: string; user: AuthUser }
+
 // Base URL of the backend. Override with VITE_API_URL in a .env file if needed.
 const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
 

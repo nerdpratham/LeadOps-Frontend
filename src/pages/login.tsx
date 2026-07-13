@@ -2,9 +2,8 @@ import { useState } from 'react'
 import Input from '../components/Input'
 import Button from '../components/Button'
 import { api, setToken } from '../lib/api'
-
-type AuthUser = { id: string; email: string }
-type AuthResponse = { accessToken: string; user: AuthUser }
+import type { AuthUser, AuthResponse } from '../lib/api'
+import { isDevBypass, startDevSession, DEV_USER } from '../lib/devAuth'
 
 // ─── icons ────────────────────────────────────────────────────────────────────
 
@@ -109,6 +108,15 @@ export default function Login({ onAuthed }: { onAuthed: (user: AuthUser) => void
     e.preventDefault()
     setLoginError(null)
     if (!validateLogin()) return
+
+    // DEV-ONLY bypass — lets development continue while the database is down.
+    // Compiled out of production builds (see lib/devAuth.ts).
+    if (isDevBypass(credentials.email, credentials.password)) {
+      startDevSession()
+      onAuthed(DEV_USER)
+      return
+    }
+
     setLoginLoading(true)
     try {
       const res = await api<AuthResponse>('/auth/login', {
