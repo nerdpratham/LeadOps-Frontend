@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { AuthUser } from '../lib/api'
+import Leads from './leads'
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -82,9 +83,12 @@ export default function Dashboard({ user, onSignOut }: { user: AuthUser; onSignO
   const [active, setActive] = useState('dashboard')
   const [demoNote, setDemoNote] = useState<string | null>(null)
 
+  // These keys render real views; everything else is a demo placeholder.
+  const REAL_VIEWS = new Set(['dashboard', 'lead-gen', 'leads'])
+
   function openModule(m: { key: string; label?: string; title?: string }) {
     setActive(m.key)
-    setDemoNote(`“${m.label ?? m.title}” is a demo module — coming soon.`)
+    setDemoNote(REAL_VIEWS.has(m.key) ? null : `“${m.label ?? m.title}” is a demo module — coming soon.`)
   }
 
   return (
@@ -124,7 +128,7 @@ export default function Dashboard({ user, onSignOut }: { user: AuthUser; onSignO
             {navItems.map(item => (
               <li key={item.key}>
                 <button
-                  onClick={() => (item.key === 'dashboard' ? setActive('dashboard') : openModule(item))}
+                  onClick={() => openModule(item)}
                   className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition
                     ${active === item.key
                       ? 'bg-gradient-to-r from-rose-50 to-orange-50 text-orange-600'
@@ -179,6 +183,9 @@ export default function Dashboard({ user, onSignOut }: { user: AuthUser; onSignO
           </div>
         </header>
 
+        {active === 'lead-gen' || active === 'leads' ? (
+          <Leads />
+        ) : (
         <div className="mx-auto max-w-6xl px-6 py-6">
           {demoNote && (
             <div className="mb-5 flex items-center justify-between rounded-xl border border-orange-200 bg-orange-50 px-4 py-2.5 text-sm text-orange-700">
@@ -224,6 +231,7 @@ export default function Dashboard({ user, onSignOut }: { user: AuthUser; onSignO
             ))}
           </div>
         </div>
+        )}
       </main>
     </div>
   )

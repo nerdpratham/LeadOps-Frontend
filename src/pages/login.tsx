@@ -109,10 +109,18 @@ export default function Login({ onAuthed }: { onAuthed: (user: AuthUser) => void
     setLoginError(null)
     if (!validateLogin()) return
 
-    // DEV-ONLY bypass — lets development continue while the database is down.
+    // DEV-ONLY bypass — lets development continue while real auth/DB is unavailable.
     // Compiled out of production builds (see lib/devAuth.ts).
     if (isDevBypass(credentials.email, credentials.password)) {
       startDevSession()
+      // Try to obtain a real access token so authenticated calls (e.g. /leads)
+      // work. If the backend/DB is down, still enter the app (offline dashboard).
+      try {
+        const res = await api<AuthResponse>('/auth/dev-login', { method: 'POST' })
+        setToken(res.accessToken)
+      } catch {
+        /* backend/DB unavailable — dashboard works, data features will show errors */
+      }
       onAuthed(DEV_USER)
       return
     }

@@ -2,6 +2,31 @@ export type Role = 'admin' | 'employee'
 export type AuthUser = { id: string; email: string; role?: Role }
 export type AuthResponse = { accessToken: string; user: AuthUser }
 
+export const LEAD_STATUSES = ['NEW', 'CONTACTED', 'QUALIFIED', 'PROPOSAL', 'WON', 'LOST'] as const
+export type LeadStatus = (typeof LEAD_STATUSES)[number]
+
+export type LeadActivity = {
+  id: string
+  fromStatus: LeadStatus | null
+  toStatus: LeadStatus
+  note: string | null
+  createdAt: string
+}
+
+export type Lead = {
+  id: string
+  name: string
+  company: string | null
+  email: string | null
+  phone: string | null
+  source: string | null
+  notes: string | null
+  status: LeadStatus
+  createdAt: string
+  updatedAt: string
+  activities?: LeadActivity[]
+}
+
 // Base URL of the backend. Override with VITE_API_URL in a .env file if needed.
 const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
 
