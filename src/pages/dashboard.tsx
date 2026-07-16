@@ -137,7 +137,7 @@ export default function Dashboard({ user, onSignOut }: { user: AuthUser; onSignO
 
   // Live lead stats for the tiles. Refreshed each time the dashboard is shown.
   const [stats, setStats] = useState({
-    total: 0, active: 0, conversion: 0,
+    total: 0, active: 0, conversion: 0, converted: 0, weekAdded: 0,
     spark: [] as number[],
     counts: { submitted: 0, inProcess: 0, dead: 0 },
     loaded: false,
@@ -162,9 +162,13 @@ export default function Dashboard({ user, onSignOut }: { user: AuthUser; onSignO
           end.setHours(23, 59, 59, 999)
           return leads.filter(l => new Date(l.createdAt) <= end).length
         })
+        const weekAgo = new Date(now)
+        weekAgo.setDate(now.getDate() - 7)
+        const weekAdded = leads.filter(l => new Date(l.createdAt) >= weekAgo).length
         setStats({
           total, active: inProcess,
           conversion: total ? Math.round((converted / total) * 1000) / 10 : 0,
+          converted, weekAdded,
           spark,
           counts: { submitted: byName('Submitted'), inProcess, dead: byName('Dead') },
           loaded: true,
@@ -292,7 +296,12 @@ export default function Dashboard({ user, onSignOut }: { user: AuthUser; onSignO
             <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
               <p className="text-xs font-medium text-gray-500">Total Leads</p>
               <div className="mt-1 flex items-end justify-between gap-2">
-                <p className="text-2xl font-bold text-gray-900">{stats.loaded ? stats.total.toLocaleString() : '—'}</p>
+                <div>
+                  <p className="text-2xl font-bold text-gray-900">{stats.loaded ? stats.total.toLocaleString() : '—'}</p>
+                  <p className={`mt-0.5 text-[11px] font-medium ${stats.loaded && stats.weekAdded > 0 ? 'text-emerald-600' : 'text-gray-400'}`}>
+                    {stats.loaded ? (stats.weekAdded > 0 ? `+${stats.weekAdded} this week` : 'No new this week') : ' '}
+                  </p>
+                </div>
                 <Sparkline data={stats.spark} />
               </div>
             </div>
@@ -301,7 +310,12 @@ export default function Dashboard({ user, onSignOut }: { user: AuthUser; onSignO
             <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
               <p className="text-xs font-medium text-gray-500">Conversion Rate</p>
               <div className="mt-1 flex items-center justify-between gap-2">
-                <p className="text-2xl font-bold text-gray-900">{stats.loaded ? `${stats.conversion}%` : '—'}</p>
+                <div>
+                  <p className="text-2xl font-bold text-gray-900">{stats.loaded ? `${stats.conversion}%` : '—'}</p>
+                  <p className="mt-0.5 text-[11px] font-medium text-gray-400">
+                    {stats.loaded ? `${stats.converted} of ${stats.total} converted` : ' '}
+                  </p>
+                </div>
                 <Ring pct={stats.loaded ? stats.conversion : 0} />
               </div>
             </div>
@@ -310,6 +324,9 @@ export default function Dashboard({ user, onSignOut }: { user: AuthUser; onSignO
             <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
               <p className="text-xs font-medium text-gray-500">Active Campaigns</p>
               <p className="mt-1 text-2xl font-bold text-gray-900">{stats.loaded ? String(stats.active) : '—'}</p>
+              <p className="mt-0.5 text-[11px] font-medium text-gray-400">
+                {stats.loaded ? (stats.total ? `${Math.round((stats.active / stats.total) * 100)}% of pipeline` : 'No leads yet') : ' '}
+              </p>
               <div className="mt-2 h-4">{stats.loaded && <StatusDots counts={stats.counts} />}</div>
             </div>
 
@@ -317,7 +334,7 @@ export default function Dashboard({ user, onSignOut }: { user: AuthUser; onSignO
             <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
               <p className="text-xs font-medium text-gray-500">Revenue (MTD)</p>
               <p className="mt-1 text-2xl font-bold text-gray-300">—</p>
-              <p className="mt-2 text-[11px] font-medium text-gray-400">Connect revenue tracking</p>
+              <p className="mt-0.5 text-[11px] font-medium text-gray-400">Connect revenue tracking</p>
             </div>
           </div>
 
