@@ -1,5 +1,6 @@
-import { useState } from 'react'
-import type { AuthUser } from '../lib/api'
+import { useEffect, useState } from 'react'
+import { api } from '../lib/api'
+import type { AuthUser, Lead } from '../lib/api'
 import Leads from './leads'
 import Catalog from './catalog'
 
@@ -57,13 +58,6 @@ const ADMIN_MODULES: Module[] = [
   { key: 'settings', title: 'Workspace Settings', desc: 'Configure your organization workspace.', icon: icons.settings, stat: 'Admin only', accent: 'from-slate-400 to-gray-500' },
 ]
 
-const STATS = [
-  { label: 'Total Leads', value: '1,284' },
-  { label: 'Conversion Rate', value: '18.6%' },
-  { label: 'Active Campaigns', value: '6' },
-  { label: 'Revenue (MTD)', value: '$48.2k' },
-]
-
 // ─── component ──────────────────────────────────────────────────────────────────
 
 export default function Dashboard({ user, onSignOut }: { user: AuthUser; onSignOut: () => void }) {
@@ -83,8 +77,35 @@ export default function Dashboard({ user, onSignOut }: { user: AuthUser; onSignO
     ...(isAdmin ? [{ key: 'team', label: 'Team', icon: icons.team }, { key: 'settings', label: 'Settings', icon: icons.settings }] : []),
   ]
 
-  const [active, setActive] = useState('dashboard')
+  // Remember the current tab across page refreshes.
+  const [active, setActive] = useState(() => localStorage.getItem('leadops_tab') ?? 'dashboard')
+  useEffect(() => { localStorage.setItem('leadops_tab', active) }, [active])
   const [demoNote, setDemoNote] = useState<string | null>(null)
+
+  // Live lead stats for the tiles. Refreshed each time the dashboard is shown.
+  const [stats, setStats] = useState({ total: 0, active: 0, conversion: 0, loaded: false })
+  useEffect(() => {
+    if (active !== 'dashboard') return
+    api<{ leads: Lead[] }>('/leads', { auth: true })
+      .then(({ leads }) => {
+        const total = leads.length
+        const inProcess = leads.filter(l => l.status?.statusName === 'In Process').length
+        // "Converted" = progressed beyond the initial stage (In Progress or a Won/completed category).
+        const converted = leads.filter(l => {
+          const c = l.status?.statusCategory
+          return c === 'In Progress' || c === 'Closed Won'
+        }).length
+        setStats({ total, active: inProcess, conversion: total ? Math.round((converted / total) * 1000) / 10 : 0, loaded: true })
+      })
+      .catch(() => setStats(s => ({ ...s, loaded: true })))
+  }, [active])
+
+  const statTiles = [
+    { label: 'Total Leads', value: stats.loaded ? stats.total.toLocaleString() : '—' },
+    { label: 'Conversion Rate', value: stats.loaded ? `${stats.conversion}%` : '—' },
+    { label: 'Active Campaigns', value: stats.loaded ? String(stats.active) : '—' },
+    { label: 'Revenue (MTD)', value: '—' },
+  ]
 
   // These keys render real views; everything else is a demo placeholder.
   const REAL_VIEWS = new Set(['dashboard', 'lead-gen', 'leads', 'setup'])
@@ -187,7 +208,7 @@ export default function Dashboard({ user, onSignOut }: { user: AuthUser; onSignO
         </header>
 
         {active === 'lead-gen' || active === 'leads' ? (
-          <Leads />
+          <Leads isAdmin={isAdmin} />
         ) : active === 'setup' ? (
           <Catalog />
         ) : (
@@ -201,7 +222,7 @@ export default function Dashboard({ user, onSignOut }: { user: AuthUser; onSignO
 
           {/* stat tiles */}
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-            {STATS.map(s => (
+            {statTiles.map(s => (
               <div key={s.label} className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
                 <p className="text-xs font-medium text-gray-500">{s.label}</p>
                 <p className="mt-1 text-2xl font-bold text-gray-900">{s.value}</p>

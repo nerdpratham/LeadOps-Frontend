@@ -17,7 +17,7 @@ const userLabel = (u?: { userName: string | null; email: string } | null) => (u 
 const inputCls = 'w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm outline-none focus:border-transparent focus:ring-2 focus:ring-orange-300'
 const emptyForm = { plantName: '', city: '', contactName: '', verticalName: '', sectorName: '', assignedToName: '', remark: '', statusName: 'Submitted' }
 
-export default function Leads() {
+export default function Leads({ isAdmin = false }: { isAdmin?: boolean }) {
   const [leads, setLeads] = useState<Lead[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -148,7 +148,7 @@ export default function Leads() {
                   <th className="px-3 py-3 font-semibold">Status</th>
                   <th className="px-3 py-3 font-semibold">Assigned</th>
                   <th className="px-3 py-3 font-semibold">Updated</th>
-                  <th className="px-3 py-3 font-semibold"></th>
+                  {isAdmin && <th className="px-3 py-3 font-semibold"></th>}
                 </tr>
               </thead>
               <tbody>
@@ -174,9 +174,11 @@ export default function Leads() {
                     </td>
                     <td className="px-3 py-3 text-xs text-gray-600">{userLabel(lead.assignedToUser)}</td>
                     <td className="px-3 py-3 text-xs text-gray-500">{fmt(lead.updatedAt)}</td>
-                    <td className="px-3 py-3 text-right">
-                      <button onClick={() => removeLead(lead.id)} disabled={savingId === lead.id} className="text-xs font-medium text-red-400 hover:text-red-600 disabled:opacity-50">Delete</button>
-                    </td>
+                    {isAdmin && (
+                      <td className="px-3 py-3 text-right">
+                        <button onClick={() => removeLead(lead.id)} disabled={savingId === lead.id} className="text-xs font-medium text-red-400 hover:text-red-600 disabled:opacity-50">Delete</button>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
