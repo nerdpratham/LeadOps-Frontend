@@ -43,20 +43,73 @@ const icons = {
 
 // ─── module cards shown in the main area ────────────────────────────────────────
 
-type Module = { key: string; title: string; desc: string; icon: string; stat: string; accent: string }
+// `action` = the clear call-to-action label. `glow` = the hover border/shadow tint.
+type Module = { key: string; title: string; desc: string; icon: string; action: string; accent: string; glow: string }
 
 const CORE_MODULES: Module[] = [
-  { key: 'lead-gen', title: 'Lead Generation', desc: 'Discover, capture and qualify new prospects.', icon: icons.leadGen, stat: '128 new this week', accent: 'from-rose-400 to-orange-400' },
-  { key: 'leads', title: 'My Leads', desc: 'Track and nurture your assigned leads.', icon: icons.leads, stat: '42 active', accent: 'from-sky-400 to-indigo-400' },
-  { key: 'campaigns', title: 'Campaigns', desc: 'Launch and monitor outreach campaigns.', icon: icons.campaigns, stat: '6 running', accent: 'from-violet-400 to-fuchsia-400' },
-  { key: 'reports', title: 'Reports', desc: 'Pipeline, conversion and activity analytics.', icon: icons.reports, stat: 'Updated today', accent: 'from-emerald-400 to-teal-400' },
-  { key: 'tasks', title: 'Tasks', desc: 'Your follow-ups and to-dos in one place.', icon: icons.tasks, stat: '9 due', accent: 'from-amber-400 to-orange-400' },
+  { key: 'lead-gen', title: 'Lead Generation', desc: 'Discover, capture and qualify new prospects.', icon: icons.leadGen, action: 'Open', accent: 'from-rose-400 to-orange-400', glow: 'rgba(251,146,60,0.45)' },
+  { key: 'leads', title: 'My Leads', desc: 'Track and nurture your assigned leads.', icon: icons.leads, action: 'Open', accent: 'from-sky-400 to-indigo-400', glow: 'rgba(56,189,248,0.45)' },
+  { key: 'campaigns', title: 'Campaigns', desc: 'Launch and monitor outreach campaigns.', icon: icons.campaigns, action: 'Explore', accent: 'from-violet-400 to-fuchsia-400', glow: 'rgba(167,139,250,0.45)' },
+  { key: 'reports', title: 'Reports', desc: 'Pipeline, conversion and activity analytics.', icon: icons.reports, action: 'View', accent: 'from-emerald-400 to-teal-400', glow: 'rgba(52,211,153,0.45)' },
+  { key: 'tasks', title: 'Tasks', desc: 'Your follow-ups and to-dos in one place.', icon: icons.tasks, action: 'Open', accent: 'from-amber-400 to-orange-400', glow: 'rgba(251,191,36,0.45)' },
 ]
 
 const ADMIN_MODULES: Module[] = [
-  { key: 'team', title: 'Team Management', desc: 'Manage members, roles and permissions.', icon: icons.team, stat: '14 members', accent: 'from-rose-400 to-pink-400' },
-  { key: 'settings', title: 'Workspace Settings', desc: 'Configure your organization workspace.', icon: icons.settings, stat: 'Admin only', accent: 'from-slate-400 to-gray-500' },
+  { key: 'team', title: 'Team Management', desc: 'Manage members, roles and permissions.', icon: icons.team, action: 'Manage', accent: 'from-rose-400 to-pink-400', glow: 'rgba(251,113,133,0.45)' },
+  { key: 'settings', title: 'Workspace Settings', desc: 'Configure your organization workspace.', icon: icons.settings, action: 'Configure', accent: 'from-slate-400 to-gray-500', glow: 'rgba(148,163,184,0.5)' },
 ]
+
+// ─── stat-tile micro-visualizations ────────────────────────────────────────────
+
+// Thin upward line (2px, rounded ends) with a small end marker. Emerald = growth.
+function Sparkline({ data }: { data: number[] }) {
+  if (data.length < 2) return <div className="h-6 w-[72px]" />
+  const w = 72, h = 24
+  const max = Math.max(...data), min = Math.min(...data)
+  const range = max - min || 1
+  const y = (v: number) => h - ((v - min) / range) * h
+  const pts = data.map((v, i) => `${((i / (data.length - 1)) * w).toFixed(1)},${y(v).toFixed(1)}`).join(' ')
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="overflow-visible" aria-hidden="true">
+      <polyline points={pts} fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx={w} cy={y(data[data.length - 1])} r="2.5" fill="#10b981" />
+    </svg>
+  )
+}
+
+// Circular progress ring for a percentage. Track + orange arc.
+function Ring({ pct }: { pct: number }) {
+  const r = 15, c = 2 * Math.PI * r
+  const dash = (Math.max(0, Math.min(pct, 100)) / 100) * c
+  return (
+    <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true">
+      <circle cx="20" cy="20" r={r} fill="none" stroke="#eef2f7" strokeWidth="4" />
+      <circle cx="20" cy="20" r={r} fill="none" stroke="#f97316" strokeWidth="4" strokeLinecap="round"
+        strokeDasharray={`${dash} ${c}`} transform="rotate(-90 20 20)" />
+    </svg>
+  )
+}
+
+// Proportional status dots (In Process / Submitted / Dead). Each dot carries a
+// title so its status is available without relying on color alone.
+function StatusDots({ counts }: { counts: { submitted: number; inProcess: number; dead: number } }) {
+  const groups = [
+    { title: 'In Process', n: counts.inProcess, color: '#f59e0b' },
+    { title: 'Submitted', n: counts.submitted, color: '#0ea5e9' },
+    { title: 'Dead', n: counts.dead, color: '#f43f5e' },
+  ]
+  const dots = groups.flatMap(g => Array.from({ length: g.n }, () => ({ title: g.title, color: g.color })))
+  const shown = dots.slice(0, 14)
+  return (
+    <div className="flex flex-wrap items-center gap-1">
+      {dots.length === 0 && <span className="text-[10px] text-gray-300">no leads</span>}
+      {shown.map((d, i) => (
+        <span key={i} title={d.title} className="h-2 w-2 rounded-full" style={{ backgroundColor: d.color }} />
+      ))}
+      {dots.length > shown.length && <span className="text-[10px] font-medium text-gray-400">+{dots.length - shown.length}</span>}
+    </div>
+  )
+}
 
 // ─── component ──────────────────────────────────────────────────────────────────
 
@@ -83,29 +136,42 @@ export default function Dashboard({ user, onSignOut }: { user: AuthUser; onSignO
   const [demoNote, setDemoNote] = useState<string | null>(null)
 
   // Live lead stats for the tiles. Refreshed each time the dashboard is shown.
-  const [stats, setStats] = useState({ total: 0, active: 0, conversion: 0, loaded: false })
+  const [stats, setStats] = useState({
+    total: 0, active: 0, conversion: 0,
+    spark: [] as number[],
+    counts: { submitted: 0, inProcess: 0, dead: 0 },
+    loaded: false,
+  })
   useEffect(() => {
     if (active !== 'dashboard') return
     api<{ leads: Lead[] }>('/leads', { auth: true })
       .then(({ leads }) => {
         const total = leads.length
-        const inProcess = leads.filter(l => l.status?.statusName === 'In Process').length
+        const byName = (n: string) => leads.filter(l => l.status?.statusName === n).length
+        const inProcess = byName('In Process')
         // "Converted" = progressed beyond the initial stage (In Progress or a Won/completed category).
         const converted = leads.filter(l => {
           const c = l.status?.statusCategory
           return c === 'In Progress' || c === 'Closed Won'
         }).length
-        setStats({ total, active: inProcess, conversion: total ? Math.round((converted / total) * 1000) / 10 : 0, loaded: true })
+        // Cumulative leads created over the last 7 days → a naturally upward line.
+        const now = new Date()
+        const spark = Array.from({ length: 7 }, (_, i) => {
+          const end = new Date(now)
+          end.setDate(now.getDate() - (6 - i))
+          end.setHours(23, 59, 59, 999)
+          return leads.filter(l => new Date(l.createdAt) <= end).length
+        })
+        setStats({
+          total, active: inProcess,
+          conversion: total ? Math.round((converted / total) * 1000) / 10 : 0,
+          spark,
+          counts: { submitted: byName('Submitted'), inProcess, dead: byName('Dead') },
+          loaded: true,
+        })
       })
       .catch(() => setStats(s => ({ ...s, loaded: true })))
   }, [active])
-
-  const statTiles = [
-    { label: 'Total Leads', value: stats.loaded ? stats.total.toLocaleString() : '—' },
-    { label: 'Conversion Rate', value: stats.loaded ? `${stats.conversion}%` : '—' },
-    { label: 'Active Campaigns', value: stats.loaded ? String(stats.active) : '—' },
-    { label: 'Revenue (MTD)', value: '—' },
-  ]
 
   // These keys render real views; everything else is a demo placeholder.
   const REAL_VIEWS = new Set(['dashboard', 'lead-gen', 'leads', 'setup'])
@@ -222,12 +288,37 @@ export default function Dashboard({ user, onSignOut }: { user: AuthUser; onSignO
 
           {/* stat tiles */}
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-            {statTiles.map(s => (
-              <div key={s.label} className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
-                <p className="text-xs font-medium text-gray-500">{s.label}</p>
-                <p className="mt-1 text-2xl font-bold text-gray-900">{s.value}</p>
+            {/* Total Leads — upward sparkline */}
+            <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+              <p className="text-xs font-medium text-gray-500">Total Leads</p>
+              <div className="mt-1 flex items-end justify-between gap-2">
+                <p className="text-2xl font-bold text-gray-900">{stats.loaded ? stats.total.toLocaleString() : '—'}</p>
+                <Sparkline data={stats.spark} />
               </div>
-            ))}
+            </div>
+
+            {/* Conversion Rate — circular progress ring */}
+            <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+              <p className="text-xs font-medium text-gray-500">Conversion Rate</p>
+              <div className="mt-1 flex items-center justify-between gap-2">
+                <p className="text-2xl font-bold text-gray-900">{stats.loaded ? `${stats.conversion}%` : '—'}</p>
+                <Ring pct={stats.loaded ? stats.conversion : 0} />
+              </div>
+            </div>
+
+            {/* Active Campaigns — status dots */}
+            <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+              <p className="text-xs font-medium text-gray-500">Active Campaigns</p>
+              <p className="mt-1 text-2xl font-bold text-gray-900">{stats.loaded ? String(stats.active) : '—'}</p>
+              <div className="mt-2 h-4">{stats.loaded && <StatusDots counts={stats.counts} />}</div>
+            </div>
+
+            {/* Revenue — muted placeholder (no revenue source wired yet) */}
+            <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+              <p className="text-xs font-medium text-gray-500">Revenue (MTD)</p>
+              <p className="mt-1 text-2xl font-bold text-gray-300">—</p>
+              <p className="mt-2 text-[11px] font-medium text-gray-400">Connect revenue tracking</p>
+            </div>
           </div>
 
           {/* modules */}
@@ -236,25 +327,38 @@ export default function Dashboard({ user, onSignOut }: { user: AuthUser; onSignO
             <span className="text-xs text-gray-400">Demo — select any card</span>
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {modules.map(m => (
-              <button
-                key={m.key}
-                onClick={() => openModule(m)}
-                className="group flex flex-col items-start rounded-2xl border border-gray-100 bg-white p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-              >
-                <div className={`mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br ${m.accent} text-white`}>
-                  <Icon d={m.icon} className="h-5 w-5" />
-                </div>
-                <h3 className="text-sm font-bold text-gray-900">{m.title}</h3>
-                <p className="mt-1 text-xs leading-relaxed text-gray-500">{m.desc}</p>
-                <span className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-gray-400 group-hover:text-orange-500">
-                  {m.stat}
-                  <svg className="h-3.5 w-3.5 transition group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                  </svg>
-                </span>
-              </button>
-            ))}
+            {modules.map(m => {
+              const live = REAL_VIEWS.has(m.key) // real, working modules vs. demo placeholders
+              return (
+                <button
+                  key={m.key}
+                  onClick={() => openModule(m)}
+                  style={{ '--glow': m.glow } as React.CSSProperties}
+                  className="group flex flex-col items-start rounded-2xl border border-gray-100 bg-white p-5 text-left shadow-sm transition-all duration-200
+                    hover:-translate-y-1 hover:border-[color:var(--glow)] hover:shadow-[0_16px_36px_-12px_var(--glow)]"
+                >
+                  <div className="flex w-full items-start justify-between">
+                    <div className={`flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br ${m.accent} text-white`}>
+                      <Icon d={m.icon} className="h-5 w-5" />
+                    </div>
+                    {/* small status indicator */}
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+                      <span className={`h-1.5 w-1.5 rounded-full ${live ? 'bg-emerald-500' : 'bg-gray-300'} ${live ? 'animate-pulse' : ''}`} />
+                      {live ? 'Live' : 'Demo'}
+                    </span>
+                  </div>
+                  <h3 className="mt-4 text-sm font-bold text-gray-900">{m.title}</h3>
+                  <p className="mt-1 text-xs leading-relaxed text-gray-500">{m.desc}</p>
+                  {/* clear action label */}
+                  <span className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-orange-500">
+                    {m.action}
+                    <svg className="h-3.5 w-3.5 transition group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </span>
+                </button>
+              )
+            })}
           </div>
         </div>
         )}
