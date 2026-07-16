@@ -1,30 +1,39 @@
+import { hasDevSession } from './devAuth'
+
 export type Role = 'admin' | 'employee'
 export type AuthUser = { id: string; email: string; role?: Role }
 export type AuthResponse = { accessToken: string; user: AuthUser }
 
-export const LEAD_STATUSES = ['NEW', 'CONTACTED', 'QUALIFIED', 'PROPOSAL', 'WON', 'LOST'] as const
-export type LeadStatus = (typeof LEAD_STATUSES)[number]
+// ─── Reference / lookup entities ─────────────────────────────────────────────
+export type Location = { id: string; city: string; state: string | null; country: string | null; address: string | null; createdAt: string; updatedAt: string }
+export type Plant = { id: string; plantName: string; companyName: string | null; locationId: string; plantCode: string | null; isActive: boolean; location?: { id: string; city: string; state: string | null }; createdAt: string; updatedAt: string }
+export type Contact = { id: string; plantId: string; contactPersonName: string; designation: string | null; contactPersonNumber: string | null; alternateNumber: string | null; mailId: string | null; isPrimaryContact: boolean; createdAt: string; updatedAt: string }
+export type Vertical = { id: string; verticalName: string; description: string | null; isActive: boolean }
+export type Sector = { id: string; sectorName: string; description: string | null; isActive: boolean }
+export type LeadStatus = { id: string; statusName: string; statusCategory: string | null; displayOrder: number; isActive: boolean }
+export type EmployeeUser = { id: string; userName: string | null; email: string; role: string; department: string | null; phoneNumber: string | null; isActive: boolean }
 
-export type LeadActivity = {
-  id: string
-  fromStatus: LeadStatus | null
-  toStatus: LeadStatus
-  note: string | null
-  createdAt: string
-}
-
+// ─── Lead (main entity, with joined display data) ────────────────────────────
 export type Lead = {
   id: string
-  name: string
-  company: string | null
-  email: string | null
-  phone: string | null
-  source: string | null
-  notes: string | null
-  status: LeadStatus
+  plantId: string
+  plant?: { id: string; plantName: string; companyName: string | null; location?: { id: string; city: string; state: string | null } }
+  verticalId: string | null
+  vertical?: { id: string; verticalName: string } | null
+  sectorId: string | null
+  sector?: { id: string; sectorName: string } | null
+  contactId: string | null
+  contact?: { id: string; contactPersonName: string; contactPersonNumber: string | null; mailId: string | null } | null
+  assignedToUserId: string | null
+  assignedToUser?: { id: string; userName: string | null; email: string } | null
+  statusId: string | null
+  status?: { id: string; statusName: string; statusCategory: string | null } | null
+  remark: string | null
+  createdByUserId: string
+  createdByUser?: { id: string; userName: string | null; email: string }
   createdAt: string
   updatedAt: string
-  activities?: LeadActivity[]
+  deletedAt: string | null
 }
 
 // Base URL of the backend. Override with VITE_API_URL in a .env file if needed.
@@ -44,15 +53,33 @@ export function clearToken(): void {
   localStorage.removeItem(TOKEN_KEY)
 }
 
+// DEV-ONLY self-heal: mint a real access token via the dev-login endpoint.
+// Returns true if a token was obtained. Needs the backend + DB to be up.
+async function acquireDevToken(): Promise<boolean> {
+  try {
+    const res = await fetch(`${BASE_URL}/auth/dev-login`, { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+    if (!res.ok) return false
+    const d = (await res.json()) as { accessToken?: string }
+    if (d.accessToken) { setToken(d.accessToken); return true }
+  } catch { /* backend/DB unavailable */ }
+  return false
+}
+
 /**
  * Thin fetch wrapper. Sends/receives JSON, attaches the bearer token when present,
  * and throws an Error carrying the backend's `error` message on any non-2xx response.
+ * In a dev session it auto-acquires a token when missing/expired so authenticated
+ * calls recover automatically once the backend + database are reachable.
  */
 export async function api<T = unknown>(
   path: string,
   options: { method?: string; body?: unknown; auth?: boolean } = {},
+  retried = false,
 ): Promise<T> {
   const { method = 'GET', body, auth = false } = options
+
+  // Auth requested but no token yet — in a dev session, try to mint one first.
+  if (auth && !getToken() && hasDevSession()) await acquireDevToken()
 
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
   if (auth) {
@@ -70,6 +97,11 @@ export async function api<T = unknown>(
   } catch {
     // Network error / server not running
     throw new Error('Cannot reach the server. Please try again.')
+  }
+
+  // Token missing/expired — in a dev session, refresh it once and retry.
+  if (res.status === 401 && auth && !retried && hasDevSession()) {
+    if (await acquireDevToken()) return api<T>(path, options, true)
   }
 
   const data = await res.json().catch(() => ({}))

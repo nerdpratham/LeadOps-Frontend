@@ -1,21 +1,21 @@
-import { Fragment, useEffect, useState } from 'react'
-import { api, LEAD_STATUSES } from '../lib/api'
-import type { Lead, LeadStatus } from '../lib/api'
+import { useEffect, useState } from 'react'
+import { api } from '../lib/api'
+import type { Lead } from '../lib/api'
 
-const STATUS_STYLES: Record<LeadStatus, string> = {
-  NEW: 'bg-sky-100 text-sky-700 border-sky-200',
-  CONTACTED: 'bg-violet-100 text-violet-700 border-violet-200',
-  QUALIFIED: 'bg-amber-100 text-amber-700 border-amber-200',
-  PROPOSAL: 'bg-orange-100 text-orange-700 border-orange-200',
-  WON: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-  LOST: 'bg-rose-100 text-rose-700 border-rose-200',
+// Fixed status options.
+const STATUSES = ['Submitted', 'In Process', 'Dead'] as const
+
+const STATUS_STYLES: Record<string, string> = {
+  Submitted: 'bg-sky-100 text-sky-700 border-sky-200',
+  'In Process': 'bg-amber-100 text-amber-700 border-amber-200',
+  Dead: 'bg-rose-100 text-rose-700 border-rose-200',
 }
+const statusStyle = (name: string | null | undefined) => STATUS_STYLES[name ?? ''] ?? 'bg-gray-100 text-gray-600 border-gray-200'
+const fmt = (ts: string) => new Date(ts).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+const userLabel = (u?: { userName: string | null; email: string } | null) => (u ? u.userName || u.email : '—')
 
-function fmt(ts: string): string {
-  return new Date(ts).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
-}
-
-const emptyForm = { name: '', company: '', email: '', phone: '', source: '', notes: '' }
+const inputCls = 'w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm outline-none focus:border-transparent focus:ring-2 focus:ring-orange-300'
+const emptyForm = { plantName: '', city: '', contactName: '', verticalName: '', sectorName: '', assignedToName: '', remark: '', statusName: 'Submitted' }
 
 export default function Leads() {
   const [leads, setLeads] = useState<Lead[]>([])
@@ -25,9 +25,7 @@ export default function Leads() {
   const [form, setForm] = useState({ ...emptyForm })
   const [creating, setCreating] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
-
   const [savingId, setSavingId] = useState<string | null>(null)
-  const [expanded, setExpanded] = useState<string | null>(null)
 
   async function load() {
     setLoading(true)
@@ -41,13 +39,15 @@ export default function Leads() {
       setLoading(false)
     }
   }
-
   useEffect(() => { load() }, [])
+
+  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+    setForm(prev => ({ ...prev, [k]: e.target.value }))
 
   async function createLead(e: React.FormEvent) {
     e.preventDefault()
     setFormError(null)
-    if (!form.name.trim()) { setFormError('Name is required.'); return }
+    if (!form.plantName.trim()) { setFormError('Plant is required.'); return }
     setCreating(true)
     try {
       const { lead } = await api<{ lead: Lead }>('/leads', { method: 'POST', auth: true, body: form })
@@ -60,12 +60,11 @@ export default function Leads() {
     }
   }
 
-  async function changeStatus(id: string, status: LeadStatus) {
+  async function changeStatus(id: string, statusName: string) {
     setSavingId(id)
     try {
-      const { lead } = await api<{ lead: Lead }>(`/leads/${id}/status`, { method: 'PATCH', auth: true, body: { status } })
-      // Update in place, keep any already-loaded activity history from the response.
-      setLeads(prev => prev.map(l => (l.id === id ? { ...l, ...lead } : l)))
+      const { lead } = await api<{ lead: Lead }>(`/leads/${id}`, { method: 'PATCH', auth: true, body: { statusName } })
+      setLeads(prev => prev.map(l => (l.id === id ? lead : l)))
       setError(null)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not update status.')
@@ -74,36 +73,49 @@ export default function Leads() {
     }
   }
 
-  async function toggleHistory(id: string) {
-    if (expanded === id) { setExpanded(null); return }
-    setExpanded(id)
-    // Fetch full history (the list endpoint doesn't include activities).
+  async function removeLead(id: string) {
+    setSavingId(id)
     try {
-      const { lead } = await api<{ lead: Lead }>(`/leads/${id}`, { auth: true })
-      setLeads(prev => prev.map(l => (l.id === id ? { ...l, ...lead } : l)))
-    } catch { /* leave whatever we have */ }
+      await api(`/leads/${id}`, { method: 'DELETE', auth: true })
+      setLeads(prev => prev.filter(l => l.id !== id))
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not delete lead.')
+    } finally {
+      setSavingId(null)
+    }
   }
 
-  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
-    setForm(prev => ({ ...prev, [k]: e.target.value }))
+  const field = (label: string, key: keyof typeof form, placeholder: string, span = '') => (
+    <label className={`flex flex-col gap-1 text-xs font-medium text-gray-600 ${span}`}>
+      {label}
+      <input value={form[key]} onChange={set(key)} placeholder={placeholder} className={inputCls} />
+    </label>
+  )
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-6">
       <div className="mb-5">
-        <h2 className="text-xl font-bold text-gray-900">Lead Generation</h2>
-        <p className="text-sm text-gray-500">Capture new leads and update their status — changes are saved to the database with timestamps.</p>
+        <h2 className="text-xl font-bold text-gray-900">Leads</h2>
+        <p className="text-sm text-gray-500">Type in the lead details — matching plants, contacts, verticals and sectors are reused or created automatically. Available to all team members.</p>
       </div>
 
       {/* create form */}
       <form onSubmit={createLead} className="mb-6 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-        <h3 className="mb-3 text-sm font-bold text-gray-900">Add a lead</h3>
+        <h3 className="mb-3 text-sm font-bold text-gray-900">New lead</h3>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <input value={form.name} onChange={set('name')} placeholder="Name *" className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm outline-none focus:border-transparent focus:ring-2 focus:ring-orange-300" />
-          <input value={form.company} onChange={set('company')} placeholder="Company" className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm outline-none focus:border-transparent focus:ring-2 focus:ring-orange-300" />
-          <input value={form.email} onChange={set('email')} placeholder="Email" className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm outline-none focus:border-transparent focus:ring-2 focus:ring-orange-300" />
-          <input value={form.phone} onChange={set('phone')} placeholder="Phone" className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm outline-none focus:border-transparent focus:ring-2 focus:ring-orange-300" />
-          <input value={form.source} onChange={set('source')} placeholder="Source (e.g. Website, Referral)" className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm outline-none focus:border-transparent focus:ring-2 focus:ring-orange-300" />
-          <input value={form.notes} onChange={set('notes')} placeholder="Notes" className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm outline-none focus:border-transparent focus:ring-2 focus:ring-orange-300" />
+          {field('Plant *', 'plantName', 'e.g. Bhilai Steel Plant')}
+          {field('City', 'city', 'e.g. Bhilai')}
+          {field('Contact', 'contactName', 'Contact person name')}
+          {field('Vertical', 'verticalName', 'e.g. AI Automation')}
+          {field('Sector', 'sectorName', 'e.g. Steel')}
+          {field('Assign to', 'assignedToName', 'Employee name or email')}
+          <label className="flex flex-col gap-1 text-xs font-medium text-gray-600">
+            Status
+            <select value={form.statusName} onChange={set('statusName')} className={inputCls}>
+              {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </label>
+          {field('Remark', 'remark', 'Optional note', 'sm:col-span-2 lg:col-span-2')}
         </div>
         {formError && <p className="mt-2 text-xs text-red-500">{formError}</p>}
         <div className="mt-3">
@@ -120,75 +132,52 @@ export default function Leads() {
           <button onClick={load} className="text-xs font-medium text-orange-500 hover:text-orange-600">Refresh</button>
         </div>
 
-        {error && (
-          <div className="m-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
-            {error}
-          </div>
-        )}
+        {error && <div className="m-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>}
 
         {loading ? (
-          <p className="px-5 py-10 text-center text-sm text-gray-400">Loading leads…</p>
+          <p className="px-5 py-10 text-center text-sm text-gray-400">Loading…</p>
         ) : leads.length === 0 && !error ? (
-          <p className="px-5 py-10 text-center text-sm text-gray-400">No leads yet. Add your first one above.</p>
+          <p className="px-5 py-10 text-center text-sm text-gray-400">No leads yet. Create one above.</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[720px] text-left text-sm">
+            <table className="w-full min-w-[820px] text-left text-sm">
               <thead>
                 <tr className="border-b border-gray-100 text-xs uppercase tracking-wider text-gray-400">
-                  <th className="px-5 py-3 font-semibold">Lead</th>
+                  <th className="px-5 py-3 font-semibold">Plant / Contact</th>
+                  <th className="px-3 py-3 font-semibold">Vertical / Sector</th>
                   <th className="px-3 py-3 font-semibold">Status</th>
-                  <th className="px-3 py-3 font-semibold">Created</th>
-                  <th className="px-3 py-3 font-semibold">Last updated</th>
-                  <th className="px-3 py-3 font-semibold">History</th>
+                  <th className="px-3 py-3 font-semibold">Assigned</th>
+                  <th className="px-3 py-3 font-semibold">Updated</th>
+                  <th className="px-3 py-3 font-semibold"></th>
                 </tr>
               </thead>
               <tbody>
                 {leads.map(lead => (
-                  <Fragment key={lead.id}>
-                    <tr className="border-b border-gray-50 hover:bg-gray-50/60">
-                      <td className="px-5 py-3">
-                        <p className="font-semibold text-gray-900">{lead.name}</p>
-                        <p className="text-xs text-gray-500">{[lead.company, lead.email, lead.phone].filter(Boolean).join(' · ') || '—'}</p>
-                      </td>
-                      <td className="px-3 py-3">
-                        <select
-                          value={lead.status}
-                          disabled={savingId === lead.id}
-                          onChange={e => changeStatus(lead.id, e.target.value as LeadStatus)}
-                          className={`rounded-lg border px-2 py-1 text-xs font-semibold outline-none focus:ring-2 focus:ring-orange-300 disabled:opacity-60 ${STATUS_STYLES[lead.status]}`}
-                        >
-                          {LEAD_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
-                        </select>
-                      </td>
-                      <td className="px-3 py-3 text-xs text-gray-500">{fmt(lead.createdAt)}</td>
-                      <td className="px-3 py-3 text-xs text-gray-500">{fmt(lead.updatedAt)}</td>
-                      <td className="px-3 py-3">
-                        <button onClick={() => toggleHistory(lead.id)} className="text-xs font-medium text-orange-500 hover:text-orange-600">
-                          {expanded === lead.id ? 'Hide' : 'View'}
-                        </button>
-                      </td>
-                    </tr>
-                    {expanded === lead.id && (
-                      <tr className="bg-gray-50/60">
-                        <td colSpan={5} className="px-5 py-3">
-                          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">Status history</p>
-                          {lead.activities && lead.activities.length > 0 ? (
-                            <ul className="flex flex-col gap-1.5">
-                              {lead.activities.map(a => (
-                                <li key={a.id} className="flex items-center gap-2 text-xs text-gray-600">
-                                  <span className="text-gray-400">{fmt(a.createdAt)}</span>
-                                  <span>—</span>
-                                  {a.fromStatus ? <span>{a.fromStatus} → <strong>{a.toStatus}</strong></span> : <span>Created as <strong>{a.toStatus}</strong></span>}
-                                </li>
-                              ))}
-                            </ul>
-                          ) : (
-                            <p className="text-xs text-gray-400">No history.</p>
-                          )}
-                        </td>
-                      </tr>
-                    )}
-                  </Fragment>
+                  <tr key={lead.id} className="border-b border-gray-50 hover:bg-gray-50/60">
+                    <td className="px-5 py-3">
+                      <p className="font-semibold text-gray-900">{lead.plant?.plantName ?? '—'}</p>
+                      <p className="text-xs text-gray-500">{lead.contact?.contactPersonName ?? 'No contact'}{lead.plant?.location ? ` · ${lead.plant.location.city}` : ''}</p>
+                    </td>
+                    <td className="px-3 py-3 text-xs text-gray-600">
+                      <p>{lead.vertical?.verticalName ?? '—'}</p>
+                      <p className="text-gray-400">{lead.sector?.sectorName ?? '—'}</p>
+                    </td>
+                    <td className="px-3 py-3">
+                      <select
+                        value={lead.status?.statusName ?? 'Submitted'}
+                        disabled={savingId === lead.id}
+                        onChange={e => changeStatus(lead.id, e.target.value)}
+                        className={`rounded-lg border px-2 py-1 text-xs font-semibold outline-none focus:ring-2 focus:ring-orange-300 disabled:opacity-60 ${statusStyle(lead.status?.statusName)}`}
+                      >
+                        {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                    </td>
+                    <td className="px-3 py-3 text-xs text-gray-600">{userLabel(lead.assignedToUser)}</td>
+                    <td className="px-3 py-3 text-xs text-gray-500">{fmt(lead.updatedAt)}</td>
+                    <td className="px-3 py-3 text-right">
+                      <button onClick={() => removeLead(lead.id)} disabled={savingId === lead.id} className="text-xs font-medium text-red-400 hover:text-red-600 disabled:opacity-50">Delete</button>
+                    </td>
+                  </tr>
                 ))}
               </tbody>
             </table>
