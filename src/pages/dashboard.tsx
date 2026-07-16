@@ -327,38 +327,28 @@ export default function Dashboard({ user, onSignOut }: { user: AuthUser; onSignO
             <span className="text-xs text-gray-400">Demo — select any card</span>
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {modules.map(m => {
-              const live = REAL_VIEWS.has(m.key) // real, working modules vs. demo placeholders
-              return (
-                <button
-                  key={m.key}
-                  onClick={() => openModule(m)}
-                  style={{ '--glow': m.glow } as React.CSSProperties}
-                  className="group flex flex-col items-start rounded-2xl border border-gray-100 bg-white p-5 text-left shadow-sm transition-all duration-200
-                    hover:-translate-y-1 hover:border-[color:var(--glow)] hover:shadow-[0_16px_36px_-12px_var(--glow)]"
-                >
-                  <div className="flex w-full items-start justify-between">
-                    <div className={`flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br ${m.accent} text-white`}>
-                      <Icon d={m.icon} className="h-5 w-5" />
-                    </div>
-                    {/* small status indicator */}
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
-                      <span className={`h-1.5 w-1.5 rounded-full ${live ? 'bg-emerald-500' : 'bg-gray-300'} ${live ? 'animate-pulse' : ''}`} />
-                      {live ? 'Live' : 'Demo'}
-                    </span>
-                  </div>
-                  <h3 className="mt-4 text-sm font-bold text-gray-900">{m.title}</h3>
-                  <p className="mt-1 text-xs leading-relaxed text-gray-500">{m.desc}</p>
-                  {/* clear action label */}
-                  <span className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-orange-500">
-                    {m.action}
-                    <svg className="h-3.5 w-3.5 transition group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                    </svg>
-                  </span>
-                </button>
-              )
-            })}
+            {modules.map(m => (
+              <button
+                key={m.key}
+                onClick={() => openModule(m)}
+                style={{ '--glow': m.glow } as React.CSSProperties}
+                className="group flex flex-col items-start rounded-2xl border border-gray-100 bg-white p-5 text-left shadow-sm transition-all duration-200
+                  hover:-translate-y-1 hover:border-[color:var(--glow)] hover:shadow-[0_16px_36px_-12px_var(--glow)]"
+              >
+                <div className={`flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br ${m.accent} text-white`}>
+                  <Icon d={m.icon} className="h-5 w-5" />
+                </div>
+                <h3 className="mt-4 text-sm font-bold text-gray-900">{m.title}</h3>
+                <p className="mt-1 text-xs leading-relaxed text-gray-500">{m.desc}</p>
+                {/* clear action label */}
+                <span className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-orange-500">
+                  {m.action}
+                  <svg className="h-3.5 w-3.5 transition group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
+                </span>
+              </button>
+            ))}
           </div>
         </div>
         )}
