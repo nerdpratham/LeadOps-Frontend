@@ -3,6 +3,7 @@ import { api } from '../lib/api'
 import type { AuthUser, Lead } from '../lib/api'
 import Leads from './leads'
 import Catalog from './catalog'
+import Reports from './reports'
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -178,7 +179,7 @@ export default function Dashboard({ user, onSignOut }: { user: AuthUser; onSignO
   }, [active])
 
   // These keys render real views; everything else is a demo placeholder.
-  const REAL_VIEWS = new Set(['dashboard', 'lead-gen', 'leads', 'setup'])
+  const REAL_VIEWS = new Set(['dashboard', 'lead-gen', 'leads', 'setup', 'reports'])
 
   function openModule(m: { key: string; label?: string; title?: string }) {
     setActive(m.key)
@@ -281,6 +282,8 @@ export default function Dashboard({ user, onSignOut }: { user: AuthUser; onSignO
           <Leads isAdmin={isAdmin} />
         ) : active === 'setup' ? (
           <Catalog />
+        ) : active === 'reports' ? (
+          <Reports />
         ) : (
         <div className="mx-auto max-w-6xl px-6 py-6">
           {demoNote && (
